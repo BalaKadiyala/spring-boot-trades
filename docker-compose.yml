@@ -1,0 +1,13 @@
+services:
+  trades-app:
+    build: .
+    container_name: trades-app
+    ports:
+      - "8080:8080"
+    volumes:
+      - h2data:/data
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+
+volumes:
+  h2data:
