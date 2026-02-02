@@ -5,9 +5,12 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - h2data:/data
+      - tradesdb:/data
     environment:
       SPRING_PROFILES_ACTIVE: default
+      SPRING_DATASOURCE_URL: jdbc:h2:file:/data/tradesdb
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: ""
 
 volumes:
-  h2data:
+  tradesdb:

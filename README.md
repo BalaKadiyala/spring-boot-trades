@@ -37,60 +37,11 @@ http://localhost:8080
 ```
 http://localhost:8080/swagger-ui.html
 ```
-
 All APIs require the header:
-
 ```
 X-Client-Id: abc123
 ```
-
 Swagger UI shows this header globally.
-
----
-
-## 🗄️ H2 Database Console
-
-```
-http://localhost:8080/h2-console
-```
-
-### **H2 is file‑based (persistent)**
-Your database is stored on disk, not in memory.
-
-**JDBC URL:**
-```
-jdbc:h2:file:/data/tradesdb
-```
-
-**User:** `sa`  
-**Password:** *(empty)*
-
-### 📁 Database File Location
-
-When running locally, H2 stores files under:
-
-```
-/data/tradesdb.mv.db
-/data/tradesdb.trace.db
-```
-
-These files persist across application restarts.
-
----
-
-## 🔄 Resetting the H2 Database
-
-If you want a clean database:
-
-1. Stop the application
-2. Delete the files:
-
-```
-/data/tradesdb.mv.db
-/data/tradesdb.trace.db
-```
-
-3. Start the application again — Spring Boot will recreate the schema.
 
 ---
 
@@ -177,49 +128,6 @@ Invalid X-Client-Id
 Validation is implemented using a custom `OncePerRequestFilter`.
 
 ---
-## 🐳 Docker Support
-
-### **Dockerfile**
-
-A simple Dockerfile for packaging the Spring Boot app:
-
-```dockerfile
-FROM eclipse-temurin:21-jdk
-WORKDIR /app
-COPY target/spring-boot-trades.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
-
-Build the image:
-
-```bash
-mvn clean package -DskipTests
-docker build -t spring-boot-trades .
-```
-
-Run the container:
-
-```bash
-docker run -p 8080:8080 -v tradesdb:/data spring-boot-trades
-```
-
-### Why mount a volume?
-
-Because your H2 database is stored at:
-
-```
-/data/tradesdb
-```
-
-Mounting a volume ensures persistence:
-
-```
--v tradesdb:/data
-```
-
----
-
 ## 🐳 docker-compose Support
 
 Create a `docker-compose.yml`:
