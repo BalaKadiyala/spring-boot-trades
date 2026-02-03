@@ -13,6 +13,14 @@ public interface StockRecordRepository extends JpaRepository<StockRecord, Long> 
 
     List<StockRecord> findByStock(String stock);
 
-    @Query(value = "SELECT * FROM stock_records q WHERE q.stock = :stock ORDER BY q.date DESC", nativeQuery = true)
-    List<StockRecord> findByStockNative(@Param("stock") String stock);
+    @Query(
+            value = "SELECT * FROM stock_records " +
+                    "WHERE stock = :ticker AND quarter = :quarter " +
+                    "ORDER BY date DESC",
+            nativeQuery = true
+    )
+    List<StockRecord> findByStockAndQuarterNative(
+            @Param("ticker") String ticker,
+            @Param("quarter") Integer quarter
+    );
 }

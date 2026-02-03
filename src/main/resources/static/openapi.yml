@@ -1,0 +1,249 @@
+openapi: 3.0.3
+info:
+  title: Stock Records API
+  version: 1.0.0
+  description: Endpoints for uploading, querying, and managing stock records
+
+paths:
+
+  /api/stock-data/bulk-insert:
+    post:
+      summary: Upload CSV of stock records
+      description: Parses and persists CSV; returns a concise upload summary
+      tags:
+        - Stock Records API
+      parameters:
+        - $ref: "#/components/parameters/XClientId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file to upload
+      responses:
+        "202":
+          description: CSV processed and accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+
+  /api/stock-data/{ticker}:
+    get:
+      summary: Get records by ticker (JPA)
+      description: Returns all stock records for the given ticker (2–5 characters)
+      tags:
+        - Stock Records API
+      parameters:
+        - $ref: "#/components/parameters/XClientId"
+        - in: path
+          name: ticker
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 5
+      responses:
+        "200":
+          description: List of stock records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockRecord"
+
+    delete:
+      summary: Delete stock records by ticker
+      description: Deletes all records for the given ticker (2–5 characters)
+      tags:
+        - Stock Records API
+      parameters:
+        - $ref: "#/components/parameters/XClientId"
+        - in: path
+          name: ticker
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 5
+      responses:
+        "200":
+          description: Deleted records for ticker
+          content:
+            text/plain:
+              schema:
+                type: string
+        "404":
+          description: Ticker not found
+          content:
+            text/plain:
+              schema:
+                type: string
+
+
+  /api/stock-data/{ticker}/quarter/{quarter}:
+    get:
+      summary: Get records by ticker and quarter (Native SQL)
+      description: Returns stock records for the given ticker and quarter using a native SQL query
+      tags:
+        - Stock Records API
+      parameters:
+        - $ref: "#/components/parameters/XClientId"
+        - in: path
+          name: ticker
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 5
+        - in: path
+          name: quarter
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of stock records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockRecord"
+
+  /api/stock-data:
+    post:
+      summary: Add a single stock record
+      description: Creates a new stock record
+      tags:
+        - Stock Records API
+      parameters:
+        - $ref: "#/components/parameters/XClientId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StockRecord"
+      responses:
+        "201":
+          description: Stock record created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockRecord"
+
+    delete:
+      summary: Delete all stock records
+      description: Deletes all stock records from the database
+      tags:
+        - Stock Records API
+      parameters:
+        - $ref: "#/components/parameters/XClientId"
+      responses:
+        "200":
+          description: Deleted all stock records
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  parameters:
+    XClientId:
+      name: X-Client-Id
+      in: header
+      required: true
+      description: Client identifier required for API access
+      schema:
+        type: string
+      example: abc123
+
+  schemas:
+
+    UploadResult:
+      type: object
+      properties:
+        totalCount:
+          type: integer
+        sampleIds:
+          type: array
+          items:
+            type: integer
+
+    StockRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+
+        quarter:
+          type: integer
+
+        stock:
+          type: string
+
+        date:
+          type: string
+          format: date
+
+        open:
+          type: number
+          format: double
+
+        high:
+          type: number
+          format: double
+
+        low:
+          type: number
+          format: double
+
+        close:
+          type: number
+          format: double
+
+        volume:
+          type: integer
+          format: int64
+
+        percentChangePrice:
+          type: number
+          format: double
+
+        percentChangeVolumeOverLastWk:
+          type: number
+          format: double
+
+        previousWeeksVolume:
+          type: integer
+          format: int64
+
+        nextWeeksOpen:
+          type: number
+          format: double
+
+        nextWeeksClose:
+          type: number
+          format: double
+
+        percentChangeNextWeeksPrice:
+          type: number
+          format: double
+
+        daysToNextDividend:
+          type: integer
+
+        percentReturnNextDividend:
+          type: number
+          format: double

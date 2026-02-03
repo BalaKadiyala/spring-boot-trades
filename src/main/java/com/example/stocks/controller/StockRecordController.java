@@ -3,14 +3,13 @@ package com.example.stocks.controller;
 import com.example.stocks.dto.UploadResult;
 import com.example.stocks.model.StockRecord;
 import com.example.stocks.service.StockRecordService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/stock-data")
-@Tag(name = "Stock Records API", description = "Endpoints for uploading and querying stock records")
+@Validated
 public class StockRecordController {
 
     private static final Logger log = LoggerFactory.getLogger(StockRecordController.class);
@@ -30,51 +29,51 @@ public class StockRecordController {
     }
 
     @PostMapping(value = "/bulk-insert", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload CSV of stock records", description = "Parses and persists CSV; returns a concise upload summary")
     public ResponseEntity<UploadResult> uploadCsv(
-            @Parameter(hidden = true) @RequestHeader("X-Client-Id") String clientId,
-            @RequestPart("file") MultipartFile file) {
-
-        log.info("Client ID received in uploadCsv: {}", clientId);
-
+            @RequestPart(name = "file", required = true) MultipartFile file) {
+        log.info("uploadCsv invoked");
         UploadResult result = service.uploadFromCsv(file);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(result);
     }
 
-    @GetMapping("/{stock}")
-    @Operation(summary = "Get records by stock (JPA)", description = "Returns stock records for the given ticker using JPA query")
-    public ResponseEntity<List<StockRecord>> getByStock(
-            @Parameter(hidden = true) @RequestHeader("X-Client-Id") String clientId,
-            @PathVariable String stock) {
+    @GetMapping("/{ticker}")
+    public ResponseEntity<List<StockRecord>> getByTicker(
+            @PathVariable @Size(min = 2, max = 5) String ticker) {
 
-        log.info("Client ID received in getByStock: {}", clientId);
-
-        List<StockRecord> list = service.findByStock(stock);
+        log.info("getByTicker invoked for {}", ticker);
+        List<StockRecord> list = service.findByStock(ticker); // JPA
         return ResponseEntity.ok(list);
     }
 
-    @GetMapping("/{stock}/native")
-    @Operation(summary = "Get records by stock (native SQL)", description = "Returns stock records for the given ticker using a native SQL query")
-    public ResponseEntity<List<StockRecord>> getByStockNative(
-            @Parameter(hidden = true)
-            @RequestHeader("X-Client-Id") String clientId,
-            @PathVariable String stock) {
+    @GetMapping("/{ticker}/quarter/{quarter}")
+    public ResponseEntity<List<StockRecord>> getByTickerAndQuarter(
+            @PathVariable @Size(min = 2, max = 5) String ticker,
+            @PathVariable Integer quarter) {
 
-        log.info("Client ID received in getByStockNative: {}", clientId);
-
-        List<StockRecord> list = service.findByStockNative(stock);
+        log.info("getByTickerAndQuarter invoked for {} Q{}", ticker, quarter);
+        List<StockRecord> list = service.findByStockAndQuarterNative(ticker, quarter); // Native SQL
         return ResponseEntity.ok(list);
     }
 
     @PostMapping
-    @Operation(summary = "Add a single stock record", description = "Creates a new stock record")
-    public ResponseEntity<StockRecord> addRecord(
-            @Parameter(hidden = true) @RequestHeader("X-Client-Id") String clientId,
-            @RequestBody StockRecord record) {
-
-        log.info("Client ID received in addRecord: {}", clientId);
-
+    public ResponseEntity<StockRecord> addRecord(@RequestBody StockRecord record) {
+        log.info("addRecord invoked");
         StockRecord saved = service.addRecord(record);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @DeleteMapping({ "", "/{ticker}" })
+    public ResponseEntity<String> delete(@PathVariable(required = false) @Size(min = 1, max = 5) String ticker) {
+        log.info("delete invoked for ticker {}", ticker);
+        if (ticker == null) {
+            int deleted = service.deleteAll();
+            return ResponseEntity.ok("Deleted ALL stock records (" + deleted + " rows)");
+        }
+        int deleted = service.deleteByStock(ticker);
+        if (deleted == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("No records found for ticker: " + ticker);
+        }
+        return ResponseEntity.ok("Deleted " + deleted + " records for ticker: " + ticker);
     }
 }

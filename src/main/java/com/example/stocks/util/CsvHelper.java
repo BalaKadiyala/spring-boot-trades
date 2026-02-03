@@ -11,9 +11,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class CsvHelper {
@@ -28,59 +26,81 @@ public final class CsvHelper {
 
     public static ParseResult parse(InputStream inputStream, int batchSize) throws IOException, CsvValidationException {
         if (inputStream == null) return new ParseResult(Collections.emptyList(), Collections.emptyList());
+
         List<StockRecord> out = new ArrayList<>();
         List<String> errors = new ArrayList<>();
+
         try (InputStreamReader isr = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
              CSVReader reader = new CSVReader(isr)) {
 
             AtomicLong rowIndex = new AtomicLong(0);
             String[] row;
-            boolean headerSkipped = false;
+
+            // Read header row
+            String[] headerRow = reader.readNext();
+            if (headerRow == null) return new ParseResult(Collections.emptyList(), Collections.emptyList());
+
+            Map<String, Integer> indexMap = buildHeaderIndex(headerRow);
+
             List<StockRecord> batch = new ArrayList<>();
 
             while ((row = reader.readNext()) != null) {
-                long idx = rowIndex.getAndIncrement();
-                if (!headerSkipped) { headerSkipped = true; continue; }
+                long idx = rowIndex.incrementAndGet();
                 if (row.length == 0) continue;
+
                 try {
-                    StockRecord r = mapRow(row);
+                    StockRecord r = mapRow(row, indexMap);
                     batch.add(r);
                 } catch (Exception ex) {
-                    errors.add("row " + (idx + 1) + ": " + ex.getMessage());
+                    errors.add("row " + idx + ": " + ex.getMessage());
                 }
+
                 if (batch.size() >= batchSize) {
                     out.addAll(batch);
                     batch.clear();
                 }
             }
+
             if (!batch.isEmpty()) out.addAll(batch);
         }
+
         return new ParseResult(out, errors);
     }
 
-    private static StockRecord mapRow(String[] row) {
+    private static Map<String, Integer> buildHeaderIndex(String[] headerRow) {
+        Map<String, Integer> map = new HashMap<>();
+        for (int i = 0; i < headerRow.length; i++) {
+            map.put(headerRow[i].trim().toLowerCase(), i);
+        }
+        return map;
+    }
+
+    private static StockRecord mapRow(String[] row, Map<String,Integer> indexMap) {
         StockRecord r = new StockRecord();
-        r.setQuarter(parseInt(get(row, 0)));
-        r.setStock(nullIfEmpty(get(row, 1)));
-        r.setDate(parseDate(get(row, 2)));
-        r.setOpen(parseBigDecimal(get(row, 3)));
-        r.setHigh(parseBigDecimal(get(row, 4)));
-        r.setLow(parseBigDecimal(get(row, 5)));
-        r.setClose(parseBigDecimal(get(row, 6)));
-        r.setVolume(parseLong(get(row, 7)));
-        r.setPercentChangePrice(parseBigDecimal(get(row, 8)));
-        r.setPercentChangeVolumeOverLastWk(parseBigDecimal(get(row, 9)));
-        r.setPreviousWeeksVolume(parseLong(get(row, 10)));
-        r.setNextWeeksOpen(parseBigDecimal(get(row, 11)));
-        r.setNextWeeksClose(parseBigDecimal(get(row, 12)));
-        r.setPercentChangeNextWeeksPrice(parseBigDecimal(get(row, 13)));
-        r.setDaysToNextDividend(parseInt(get(row, 14)));
-        r.setPercentReturnNextDividend(parseBigDecimal(get(row, 15)));
+
+        r.setQuarter(parseInt(get(row, indexMap, "quarter")));
+        r.setStock(nullIfEmpty(get(row, indexMap, "stock")));
+        r.setDate(parseDate(get(row, indexMap, "date")));
+        r.setOpen(parseBigDecimal(get(row, indexMap, "open")));
+        r.setHigh(parseBigDecimal(get(row, indexMap, "high")));
+        r.setLow(parseBigDecimal(get(row, indexMap, "low")));
+        r.setClose(parseBigDecimal(get(row, indexMap, "close")));
+        r.setVolume(parseLong(get(row, indexMap, "volume")));
+        r.setPercentChangePrice(parseBigDecimal(get(row, indexMap, "percentChangePrice")));
+        r.setPercentChangeVolumeOverLastWk(parseBigDecimal(get(row, indexMap, "percentChangeVolumeOverLastWk")));
+        r.setPreviousWeeksVolume(parseLong(get(row, indexMap, "previousWeeksVolume")));
+        r.setNextWeeksOpen(parseBigDecimal(get(row, indexMap, "nextWeeksOpen")));
+        r.setNextWeeksClose(parseBigDecimal(get(row, indexMap, "nextWeeksClose")));
+        r.setPercentChangeNextWeeksPrice(parseBigDecimal(get(row, indexMap, "percentChangeNextWeeksPrice")));
+        r.setDaysToNextDividend(parseInt(get(row, indexMap, "daysToNextDividend")));
+        r.setPercentReturnNextDividend(parseBigDecimal(get(row, indexMap, "percentReturnNextDividend")));
+
         return r;
     }
 
-    private static String get(String[] row, int idx) {
-        if (row == null || idx < 0 || idx >= row.length) return "";
+    private static String get(String[] row, Map<String,Integer> indexMap, String column) {
+        Integer idx = indexMap.get(column.toLowerCase());
+        if (idx == null || idx < 0 || idx >= row.length) return "";
         String v = row[idx];
         return v == null ? "" : v.trim();
     }
@@ -119,7 +139,6 @@ public final class CsvHelper {
         if (s == null) return "";
         return s.replace("$", "").replace(",", "").trim();
     }
-
 
     public static class ParseResult {
         private final List<StockRecord> records;

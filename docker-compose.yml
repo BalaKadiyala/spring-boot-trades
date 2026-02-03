@@ -1,5 +1,7 @@
 services:
   trades-app:
+    image: trades-app:1.0.0
+    #image: trades-app:latest
     build: .
     container_name: trades-app
     ports:
@@ -7,7 +9,7 @@ services:
     volumes:
       - tradesdb:/data
     environment:
-      SPRING_PROFILES_ACTIVE: default
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:h2:file:/data/tradesdb
       SPRING_DATASOURCE_USERNAME: sa
       SPRING_DATASOURCE_PASSWORD: ""

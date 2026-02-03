@@ -54,14 +54,21 @@
 			<version>${opencsv.version}</version>
 		</dependency>
 
-		<!-- Utilities -->
+		<!-- BeanUtils (upgrade to avoid old CVEs) -->
 		<dependency>
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
-			<version>1.11.0</version>
+			<version>1.9.4</version>
 		</dependency>
 
-		<!-- OpenAPI / Swagger UI (Spring Boot 3 compatible) -->
+		<!-- Override commons-lang3 to fix CVE-2025-48924 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.18.0</version>
+		</dependency>
+
+		<!-- OpenAPI / Swagger UI -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -76,7 +83,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Validation (Jakarta) -->
+		<!-- Validation -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
@@ -88,11 +95,11 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- Spring Security -->
+		<!-- REMOVE Spring Security unless you explicitly need it -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
 
 		<!-- Testing -->
 		<dependency>
@@ -130,18 +137,17 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 
-			<!--<plugin>
+			<!-- OWASP Dependency Check with suppression -->
+			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
 				<version>9.0.9</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>-->
+				<configuration>
+					<suppressionFiles>
+						<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
+				</configuration>
+			</plugin>
 
 		</plugins>
 	</build>

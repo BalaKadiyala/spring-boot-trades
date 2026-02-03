@@ -38,13 +38,13 @@ public class StockRecordService {
     }
 
     @Transactional(readOnly = true)
-    public List<StockRecord> findByStock(String stock) {
-        return repository.findByStock(stock);
+    public List<StockRecord> findByStock(String ticker) {
+        return repository.findByStock(ticker);   // JPA
     }
 
     @Transactional(readOnly = true)
-    public List<StockRecord> findByStockNative(String stock) {
-        return repository.findByStockNative(stock);
+    public List<StockRecord> findByStockAndQuarterNative(String ticker, Integer quarter) {
+        return repository.findByStockAndQuarterNative(ticker, quarter);   // Native SQL
     }
 
     @Transactional
@@ -59,5 +59,19 @@ public class StockRecordService {
             parseResult.getErrors().forEach(err -> System.err.println("CSV parse error: " + err));
         }
         return new UploadResult(saved.size(), sampleIds);
+    }
+
+    @Transactional
+    public int deleteAll() {
+        int count = (int) repository.count();
+        repository.deleteAll();
+        return count;
+    }
+
+    @Transactional
+    public int deleteByStock(String stock) {
+        List<StockRecord> records = repository.findByStock(stock);
+        repository.deleteAll(records);
+        return records.size();
     }
 }
